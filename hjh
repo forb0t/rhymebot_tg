@@ -1,0 +1,51 @@
+import logging
+import requests
+from bs4 import BeautifulSoup as bs
+from telegram import Update
+from telegram.ext import Updater, CommandHandler, CallbackContext, MessageHandler, Filters
+
+# Replace with your actual bot token
+TOKEN = '5445241159:AAFH1swIuaqLkHk3gpitFHxKoOfBv3roKnQ'
+
+# Configure logging
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Function to send a random verse
+def verse(update: Update, context: CallbackContext):
+    r = requests.get("http://russian-poetry.ru/Random.php").text
+    soup = bs(r, "html.parser")
+    title = soup.find("title").text
+    body = soup.find("pre").text
+    message = title + "\n" + body
+    update.message.reply_text(message)
+
+# Function to handle the /start command
+def start(update: Update, context: CallbackContext):
+    update.message.reply_text('Привет, этот бот будет присылать тебе случайное стихотворение. '
+                              'Пожалуйста, выбери частоту отправки')
+
+# Function to handle the /daily command and schedule a daily job
+def daily(update: Update, context: CallbackContext):
+    job_queue = context.job_queue
+    chat_id = update.message.chat_id
+
+    # Schedule a job to send verse every 10 seconds (for example)
+    job_queue.run_repeating(verse, interval=86400, first=0, context=chat_id)  # interval is 86400 seconds = 24 hours
+    update.message.reply_text('Буду присылать стихотворение ежедневно!')
+
+def main():
+    # Initialize the Updater and Dispatcher
+    updater = Updater(TOKEN, use_context=True)
+    dispatcher = updater.dispatcher
+
+    # Command handlers
+    dispatcher.add_handler(CommandHandler("start", start))
+    dispatcher.add_handler(CommandHandler("daily", daily))
+
+    # Start the bot
+    updater.start_polling()
+    updater.idle()
+
+if __name__ == '__main__':
+    main()
