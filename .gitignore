@@ -41,3 +41,7 @@ ENV/
 .DS_Store
 Thumbs.db
 
+
+# Data
+*.db
+*.log
