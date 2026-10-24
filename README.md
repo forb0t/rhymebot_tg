@@ -1,87 +1,72 @@
-# RhymeBot Telegram
+# Rhymes — Telegram-бот со случайными стихами
 
-A Telegram bot that sends random Russian poetry to users. The bot can deliver poems on demand or schedule them for daily delivery.
+Бот присылает случайные стихотворения русских поэтов с сайта [russian-poetry.ru](https://russian-poetry.ru/) —
+по кнопке в любой момент или по расписанию.
 
-## Features
+## Возможности
 
-- **Random Poetry**: Fetch and send random Russian poems from [russian-poetry.ru](http://russian-poetry.ru)
-- **On-Demand Poems**: Request a poem instantly using the `/remind` command
-- **Scheduled Delivery**: Set up daily poetry delivery with the `/daily` command
-- **Flexible Timing**: Schedule poems to be sent after a specified number of seconds
+- 🎲 **Случайный стих** по кнопке: название, автор (ссылка на его страницу), текст с сохранёнными отступами,
+  дата или место публикации. Под стихом — «🎲 Ещё стих» и «🏠 Меню»
+- ⏰ **Рассылка**: каждый день, через день или раз в неделю, в выбранный час (08:00–22:00)
+- Длинные стихи делятся по строфам на несколько сообщений
+- Если бот был выключен, пропущенные рассылки не сыплются пачкой — приходит один стих, дальше по расписанию
+- Если сайт со стихами не отвечает, бот повторяет запрос, а рассылку откладывает до восстановления
 
-## Commands
+Всё управление — кнопками. Команда одна: `/start` (открывает меню). На любое сообщение в личке бот тоже показывает меню.
 
-- `/start` - Start the bot and get a welcome message
-- `/remind` - Request a poem immediately
-- `/daily` - Set up daily poetry delivery
+## Запуск
 
-## Installation
-
-1. Clone this repository:
 ```bash
-git clone https://github.com/forb0t/rhymebot_tg.git
-cd rhymebot_tg
+python -m venv .venv
+.venv/bin/pip install -r requirements.txt
+cp .env.example .env   # впишите токен от @BotFather
+set -a; . ./.env; set +a
+.venv/bin/python main.py
 ```
 
-2. Install required dependencies:
+> ⚠️ Никогда не вписывайте токен в код и не коммитьте `.env` — токен из публичного репозитория
+> украдут за минуты. Если токен утёк, отзовите его в @BotFather (*API Token → Revoke*).
+
+### Как systemd-сервис пользователя
+
+```ini
+# ~/.config/systemd/user/rhymebot.service
+[Service]
+WorkingDirectory=%h/Applications/rhymebot
+EnvironmentFile=%h/.config/rhymebot/env
+Environment=RHYMES_DATA_DIR=%h/.local/share/rhymebot
+ExecStart=%h/Applications/rhymebot/.venv/bin/python main.py
+Restart=always
+RestartSec=15
+RestartPreventExitStatus=78
+
+[Install]
+WantedBy=default.target
+```
+
 ```bash
-pip install pyTelegramBotAPI python-telegram-bot requests beautifulsoup4 pytz
+systemctl --user enable --now rhymebot
+journalctl --user -u rhymebot -f
 ```
 
-## Configuration
+Без токена бот завершается с кодом 78, и systemd не перезапускает его впустую.
 
-1. Create a Telegram bot by talking to [@BotFather](https://t.me/BotFather) on Telegram
-2. Get your bot token
-3. Replace `'YOUR_BOT_TOKEN'` in the main bot file with your actual bot token:
-   - Open `ggd.py` or `main.py`
-   - Find the line: `bot = telebot.TeleBot('YOUR_BOT_TOKEN')`
-   - Replace `'YOUR_BOT_TOKEN'` with your actual token
+## Настройки
 
-**Note**: For security, consider using environment variables to store your bot token instead of hardcoding it.
+| Переменная | По умолчанию | Описание |
+|---|---|---|
+| `TELEGRAM_BOT_TOKEN` | — | Токен бота от @BotFather (обязательно) |
+| `BOT_TIMEZONE` | `Europe/Moscow` | Часовой пояс рассылки |
+| `RHYMES_DATA_DIR` | `.` | Где хранить базу подписок `rhymes.db` и лог `bot.log` |
 
-## Usage
+Имя бота, описание и короткое описание заданы константами в начале `bot.py` и выставляются при каждом запуске.
 
-1. Run the bot:
-```bash
-python ggd.py
-```
-or
-```bash
-python main.py
-```
-
-2. Open Telegram and find your bot
-3. Send `/start` to begin
-4. Use `/remind` to get a poem immediately or `/daily` for scheduled delivery
-
-## Requirements
-
-- Python 3.7+
-- pyTelegramBotAPI
-- python-telegram-bot
-- requests
-- beautifulsoup4
-- pytz
-
-## Project Structure
+## Структура проекта
 
 ```
-rhymebot_tg/
-├── ggd.py           # Main bot implementation
-├── main.py          # Alternative bot implementation
-├── fd.py            # Additional bot code
-├── fdf.py           # Additional bot code
-├── .gitignore       # Git ignore file
-└── README.md        # This file
+├── main.py         # точка входа
+├── bot.py          # Telegram-бот: меню, стихи, рассылка
+├── poetry.py       # загрузка и разбор случайного стихотворения с russian-poetry.ru
+├── storage.py      # SQLite: подписки на рассылку
+└── bot_config.py   # настройки из окружения
 ```
-
-## Notes
-
-- The bot fetches poetry from the external source `russian-poetry.ru`
-- Make sure you have an active internet connection
-- The bot uses long polling to receive updates from Telegram
-
-## License
-
-This project is open source and available for modification and distribution.
-
